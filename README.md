@@ -61,7 +61,7 @@ A sleek **Weather App** with a **Glassmorphism UI**, smooth animations, and a **
 5. Open a PR 🚀
 
 ## 📜 License
-This project is **open-source** under the [MIT License](LICENSE).
+This project is **open-source** under the **MIT License**.
 
 ---
 
