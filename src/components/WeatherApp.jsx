@@ -5,6 +5,8 @@ import cloudyAnimation from "../assets/animations/cloudy.json";
 import rainAnimation from "../assets/animations/rain.json";
 import snowAnimation from "../assets/animations/snow.json";
 import thunderAnimation from "../assets/animations/thunder.json";
+import drizzleAnimation from "../assets/animations/drizzle.json";
+import hazeAnimation from "../assets/animations/haze.json";
 
 const API_KEY = import.meta.env.VITE_OPENWEATHER_API_KEY;
 const API_URL = "https://api.openweathermap.org/data/2.5/weather";
@@ -40,6 +42,8 @@ const WeatherApp = () => {
     if (mainWeather.includes("rain")) return rainAnimation;
     if (mainWeather.includes("snow")) return snowAnimation;
     if (mainWeather.includes("thunder")) return thunderAnimation;
+    if (mainWeather.includes("drizzle")) return drizzleAnimation;
+    if (mainWeather.includes("haze")) return hazeAnimation;
     return null;
   };
 
