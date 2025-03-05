@@ -228,7 +228,12 @@ button:hover {
 
 .autocomplete-results {
     position: relative;
-    background: white;
+    background: rgba(255, 255, 255, 0.15);
+    backdrop-filter: blur(15px) saturate(180%);
+    -webkit-backdrop-filter: blur(15px) saturate(180%);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 6px 15px rgba(0, 0, 0, 0.2);
+    transition: all 0.4s ease-in-out;
     list-style: none;
     padding: 10px;
     border-radius: 5px;
@@ -238,4 +243,3 @@ button:hover {
     cursor: pointer;
     padding: 5px;
   }
-  
