@@ -214,6 +214,7 @@ const WeatherApp = () => {
               </div>
             </div>
           )}
+          <p>Select previous date to see History</p>
           <input type="date" onChange={(e) => fetchHistory(e.target.value)} />
           {history && (
             <div className="history-container">
