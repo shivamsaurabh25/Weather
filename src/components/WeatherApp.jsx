@@ -8,14 +8,18 @@ import thunderAnimation from "../assets/animations/thunder.json";
 import drizzleAnimation from "../assets/animations/drizzle.json";
 import hazeAnimation from "../assets/animations/haze.json";
 
-const API_KEY = import.meta.env.VITE_OPENWEATHER_API_KEY;
-const API_URL = "https://api.openweathermap.org/data/2.5/weather";
+const API_KEY = import.meta.env.VITE_WEATHERAPI_KEY;
+const API_URL = "https://api.weatherapi.com/v1/current.json";
 
 const WeatherApp = () => {
   const [city, setCity] = useState("");
   const [weather, setWeather] = useState(null);
   const [error, setError] = useState(null);
   const [background, setBackground] = useState("default");
+  const [forecast, setForecast] = useState(null);
+  const [history, setHistory] = useState(null);
+  const [autocompleteResults, setAutocompleteResults] = useState([]);
+
 
   useEffect(() => {
     if (background === "rainy") {
@@ -34,16 +38,17 @@ const WeatherApp = () => {
   const fetchWeather = async () => {
     if (!city) return;
     try {
-      const response = await fetch(`${API_URL}?q=${city}&appid=${API_KEY}&units=metric`);
+      const response = await fetch(`${API_URL}?key=${API_KEY}&q=${city}&aqi=yes`);
       const data = await response.json();
-      if (data.cod === 200) {
-        setWeather(data);
-        setError(null);
-        updateBackground(data.weather[0].main.toLowerCase());
-      } else {
+      if (data.error) {
         setError("City not found");
         setWeather(null);
         setBackground("default");
+      } else {
+        setWeather(data);
+        setError(null);
+        updateBackground(data.current.condition.text.toLowerCase());
+        fetchForecast();
       }
     } catch (err) {
       setError("Error fetching data");
@@ -51,6 +56,50 @@ const WeatherApp = () => {
       setBackground("default");
     }
   };
+  
+
+  const fetchForecast = async () => {
+    if (!city) return;
+    try {
+      const response = await fetch(`https://api.weatherapi.com/v1/forecast.json?key=${API_KEY}&q=${city}&days=7`);
+      const data = await response.json();
+      if (!data.error) {
+        setForecast(data.forecast.forecastday);
+      }
+    } catch (err) {
+      console.error("Error fetching forecast:", err);
+    }
+  };
+
+  const fetchHistory = async (date) => {
+    if (!city) return;
+    try {
+      const response = await fetch(`${API_URL}/history.json?key=${API_KEY}&q=${city}&dt=${date}`);
+      const data = await response.json();
+      if (!data.error) {
+        setHistory(data.forecast.forecastday[0]);
+      }
+    } catch (err) {
+      console.error("Error fetching history:", err);
+    }
+  };
+
+  const handleSearchChange = async (e) => {
+    const query = e.target.value;
+    setCity(query);
+    if (query.length > 2) {
+      try {
+        const response = await fetch(`${API_URL}/search.json?key=${API_KEY}&q=${query}`);
+        const data = await response.json();
+        setAutocompleteResults(data);
+      } catch (err) {
+        console.error("Error fetching autocomplete:", err);
+      }
+    } else {
+      setAutocompleteResults([]);
+    }
+  };
+
 
   const updateBackground = (condition) => {
     if (condition.includes("clear")) setBackground("sunny");
@@ -62,16 +111,16 @@ const WeatherApp = () => {
     else setBackground("default");
   };
 
-  const getAnimation = (weather) => {
-    if (!weather) return null;
-    const mainWeather = weather.weather[0].main.toLowerCase();
+  const getAnimation = (condition) => {
+    if (!condition) return null;
+    const mainWeather = condition.toLowerCase();
     if (mainWeather.includes("clear")) return clearAnimation;
     if (mainWeather.includes("cloud")) return cloudyAnimation;
     if (mainWeather.includes("rain")) return rainAnimation;
     if (mainWeather.includes("snow")) return snowAnimation;
     if (mainWeather.includes("thunder")) return thunderAnimation;
     if (mainWeather.includes("drizzle")) return drizzleAnimation;
-    if (mainWeather.includes("haze")) return hazeAnimation;
+    if (mainWeather.includes("haze") || mainWeather.includes("mist")) return hazeAnimation;
     return null;
   };
 
@@ -122,21 +171,59 @@ const WeatherApp = () => {
         type="text"
         placeholder="Enter city"
         value={city}
-        onChange={(e) => setCity(e.target.value)}
+        onChange={handleSearchChange}
+        onFocus={() => setAutocompleteResults([])}
       />
+      {autocompleteResults.length > 0 && (
+        <ul className="autocomplete-results">
+          {autocompleteResults.map((result) => (
+            <li key={result.id} onClick={() => {
+              setCity(result.name);
+              setAutocompleteResults([]);
+            }}>
+              {result.name}, {result.country}
+            </li>
+          ))}
+        </ul>
+      )}
       <button onClick={fetchWeather}>Get Weather</button>
       {error && <p className="error">{error}</p>}
       {weather && (
         <div className="weather-info">
-          <h2>{weather.name}, {weather.sys.country}</h2>
-          <p>{weather.weather[0].description}</p>
-          <p>🌡️ {weather.main.temp}°C</p>
-          <p>Humidity: {weather.main.humidity}%</p>
-          {getAnimation(weather) && <Lottie animationData={getAnimation(weather)} className="animation" />}
+          <h2>{weather.location.name}, {weather.location.country}</h2>
+          <p>{weather.current.condition.text}</p>
+          <p>🌡️ {weather.current.temp_c}°C</p>
+          <p>💨 Wind: {weather.current.wind_kph} kph</p>
+          {weather.current.air_quality && weather.current.air_quality.pm2_5 !== undefined && (
+            <p>🌫️ AQI: {weather.current.air_quality.pm2_5.toFixed(2)}</p>
+          )}
+          {getAnimation(weather.current.condition.text) && (
+            <Lottie animationData={getAnimation(weather.current.condition.text)} className="animation" />
+          )}
+          {forecast && (
+            <div className="forecast-container">
+              <h3>7-Day Forecast</h3>
+              <div className="forecast-list">
+                {forecast.map((day) => (
+                  <div key={day.date} className="forecast-item">
+                    <p>{day.date}</p>
+                    <p>{day.day.condition.text}</p>
+                    <p>🌡️ {day.day.avgtemp_c}°C</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          <input type="date" onChange={(e) => fetchHistory(e.target.value)} />
+          {history && (
+            <div className="history-container">
+              <h3>Historical Data for {history.date}</h3>
+              <p>{history.day.condition.text}</p>
+              <p>🌡️ Avg Temp: {history.day.avgtemp_c}°C</p>
+            </div>
+          )}
         </div>
       )}
-      <div className="rain-container"></div>
-      <div className="snow-container"></div>
     </div>
   );
 };
